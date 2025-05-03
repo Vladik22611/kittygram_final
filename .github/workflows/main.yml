@@ -156,15 +156,28 @@ jobs:
           # Тут вместо username должен быть ваш логин на Docker Hub
           tags: grechkin1vladislav/kittygram_gateway:latest
   send_message:
-    runs-on: ubuntu-latest
-    needs:
-      - build_and_push_to_docker_hub
-      - build_frontend_and_push_to_docker_hub
-      - build_gateway_and_push_to_docker_hub
-    steps:
-    - name: Send message
+  runs-on: ubuntu-latest
+  needs:
+    - build_and_push_to_docker_hub
+    - build_frontend_and_push_to_docker_hub
+    - build_gateway_and_push_to_docker_hub
+  steps:
+    - name: Get commit info
+      id: commit
+      run: |
+        echo "COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
+        echo "COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> $GITHUB_OUTPUT
+        echo "COMMIT_HASH=$(git log -1 --pretty=format:'%h')" >> $GITHUB_OUTPUT
+
+    - name: Send Telegram notification
       uses: appleboy/telegram-action@master
       with:
         to: ${{ secrets.TELEGRAM_TO }}
         token: ${{ secrets.TELEGRAM_TOKEN }}
-        message: Образы в kittygram успешно загружены!!!
+        message: |
+          ✅ Образы успешно загружены в Docker Hub!
+          
+          Автор коммита: ${{ steps.commit.outputs.COMMIT_AUTHOR }}
+          Сообщение: ${{ steps.commit.outputs.COMMIT_MESSAGE }}
+          Хэш: ${{ steps.commit.outputs.COMMIT_HASH }}
+          Ссылка: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
